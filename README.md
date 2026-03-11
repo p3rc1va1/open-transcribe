@@ -1,6 +1,8 @@
 # Open Transcribe
+<img src="media/logo.png" alt="Open Transcribe" width="128">
 
 macOS menu bar app that records meetings, transcribes via Gemini API, and saves to Notion. Recordings are kept in `~/Documents/Open Transcribe/`.
+You can just install the latest build release from the releases section, unzip and start using the app on a apple silicon mac!
 
 ## Fresh Mac Setup (Step by Step)
 
