@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.claude
+# App config (contains API keys)
+config.json
+.env
+.env.*
+
+# Audio recordings
+recordings/
+*.wav
+
+# macOS
+.DS_Store
