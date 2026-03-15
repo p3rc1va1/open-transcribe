@@ -99,7 +99,7 @@ py2app.build_app.py2app.run = _patched_run
 # ---------------------------------------------------------------------------
 
 APP = ["main.py"]
-DATA_FILES = [("media", ["media/menu_icon.png"])]
+DATA_FILES = [("media", ["media/menu_icon.png", "media/menu_icon_red.png", "media/menu_icon_yellow.png"])]
 OPTIONS = {
     "argv_emulation": False,
     "iconfile": "media/icon.icns",

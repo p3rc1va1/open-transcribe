@@ -18,6 +18,7 @@ class AudioRecorder:
         self._file: sf.SoundFile | None = None
         self._filepath: str | None = None
         self.is_recording = False
+        self.is_paused = False
         self.device_name: str = ""
 
     def start(self, filename: str) -> str:
@@ -55,12 +56,21 @@ class AudioRecorder:
         return self._filepath
 
     def _audio_callback(self, indata, frames, time, status):
-        if self._file is not None:
+        if self._file is not None and not self.is_paused:
             self._file.write(indata.copy())
+
+    def pause(self):
+        """Pause recording — stream keeps running but audio is discarded."""
+        self.is_paused = True
+
+    def resume(self):
+        """Resume recording after a pause."""
+        self.is_paused = False
 
     def stop(self) -> str | None:
         """Stop recording. Returns the file path of the recording."""
         self.is_recording = False
+        self.is_paused = False
         if self._stream is not None:
             self._stream.stop()
             self._stream.close()

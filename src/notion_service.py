@@ -15,16 +15,30 @@ class NotionService:
         self._database_id = database_id
 
     def save_transcription(
-        self, title: str, date: datetime, duration_seconds: float, text: str
+        self,
+        title: str,
+        date: datetime,
+        duration_seconds: float,
+        transcription: str,
+        summary: str,
     ) -> str:
         """Create a page in the Meetings database. Returns the page URL."""
         duration_str = _format_duration(duration_seconds)
-        blocks = _text_to_blocks(text)
 
-        # First batch of blocks (max 100 with the create call)
-        first_batch = blocks[:MAX_BLOCKS_PER_REQUEST]
-        remaining = blocks[MAX_BLOCKS_PER_REQUEST:]
+        summary_blocks = _text_to_blocks(summary)
+        transcription_blocks = _text_to_blocks(transcription)
 
+        # Build toggle heading 1 blocks with children
+        # Notion API: children go inside the toggle heading block
+        top_level_blocks = [
+            _toggle_heading_1("AI Summary", summary_blocks),
+            _toggle_heading_1("Transcription", transcription_blocks),
+        ]
+
+        # Flatten: each toggle heading counts as 1 block in the request,
+        # but its children also count toward the 100-block limit per request.
+        # We send the toggle headings with the page create, then append
+        # overflow children separately if needed.
         page = self._client.pages.create(
             parent={"database_id": self._database_id},
             properties={
@@ -33,28 +47,41 @@ class NotionService:
                 "Duration": {"rich_text": [{"text": {"content": duration_str}}]},
                 "Status": {"select": {"name": "Transcribed"}},
             },
-            children=first_batch,
+            children=top_level_blocks,
         )
-
-        # Append remaining blocks in batches
-        page_id = page["id"]
-        while remaining:
-            batch = remaining[:MAX_BLOCKS_PER_REQUEST]
-            remaining = remaining[MAX_BLOCKS_PER_REQUEST:]
-            self._client.blocks.children.append(block_id=page_id, children=batch)
 
         return page["url"]
 
 
+def _toggle_heading_1(title: str, children: list[dict]) -> dict:
+    """Create a toggle heading_1 block with nested children."""
+    # Notion API limits children to 100 per block on creation.
+    # For toggle headings, all children are nested inside.
+    return {
+        "object": "block",
+        "type": "heading_1",
+        "heading_1": {
+            "rich_text": [{"type": "text", "text": {"content": title}}],
+            "is_toggleable": True,
+            "children": children[:MAX_BLOCKS_PER_REQUEST],
+        },
+    }
+
+
 def save_transcription_locally(
-    title: str, date: datetime, duration_seconds: float, text: str
+    title: str, date: datetime, duration_seconds: float,
+    transcription: str, summary: str,
 ) -> str:
     """Fallback: save transcription as a .txt file. Returns the file path."""
     RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
     filename = f"{title}.txt"
     filepath = RECORDINGS_DIR / filename
     duration_str = _format_duration(duration_seconds)
-    content = f"Title: {title}\nDate: {date.isoformat()}\nDuration: {duration_str}\n\n{text}"
+    content = (
+        f"Title: {title}\nDate: {date.isoformat()}\nDuration: {duration_str}\n\n"
+        f"## AI Summary\n{summary}\n\n"
+        f"## Transcription\n{transcription}"
+    )
     filepath.write_text(content)
     return str(filepath)
 
@@ -116,7 +143,6 @@ def _text_to_blocks(text: str) -> list[dict]:
 
         # Regular paragraph
         rich_text = _parse_inline_markdown(stripped)
-        # Chunk if needed
         blocks.append({
             "object": "block",
             "type": "paragraph",
