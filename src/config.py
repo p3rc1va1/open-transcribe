@@ -1,13 +1,12 @@
 import json
 import os
-from dataclasses import dataclass, fields, asdict
+from dataclasses import dataclass, asdict
 from pathlib import Path
 
 APP_DIR = Path.home() / ".open-transcribe"
 CONFIG_PATH = APP_DIR / "config.json"
 RECORDINGS_DIR = Path.home() / "Documents" / "Open Transcribe"
 
-MODEL_NAME = "gemini-3-flash-preview"
 
 TRANSCRIPTION_PROMPT = (
     "Transcribe the full audio verbatim. "
@@ -38,11 +37,12 @@ TITLE_PROMPT = (
 @dataclass
 class Config:
     gemini_api_key: str = ""
+    gemini_model: str = ""
     notion_token: str = ""
     notion_database_id: str = ""
 
 
-REQUIRED_KEYS = [f.name for f in fields(Config)]
+REQUIRED_KEYS = ["gemini_api_key", "notion_token", "notion_database_id"]
 
 
 def load_config() -> tuple[Config | None, list[str]]:
@@ -54,6 +54,7 @@ def load_config() -> tuple[Config | None, list[str]]:
 
     config = Config(
         gemini_api_key=data.get("gemini_api_key", ""),
+        gemini_model=data.get("gemini_model", ""),
         notion_token=data.get("notion_token", ""),
         notion_database_id=data.get("notion_database_id", ""),
     )

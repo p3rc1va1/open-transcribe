@@ -12,9 +12,12 @@ from pathlib import Path
 import rumps
 
 from src.config import Config, TRANSCRIPTION_PROMPT, SUMMARY_PROMPT, TITLE_PROMPT, APP_DIR, CONFIG_PATH, load_config, save_config
+from src.model_selector import ModelSelector
 from src.recorder import AudioRecorder
 from src.transcriber import TranscriptionService, TranscriptionError
 from src.notion_service import NotionService, save_transcription_locally
+from src.settings_window import show_settings
+from src.upload_window import show_upload
 
 logging.basicConfig(
     level=logging.INFO,
@@ -128,8 +131,11 @@ class OpenTranscribeApp(rumps.App):
         self._mi_stop = rumps.MenuItem("Stop Recording", callback=self._stop_recording)
         self._mi_sep = None  # separator key assigned by rumps
 
+        self._mi_upload = rumps.MenuItem("Upload a Recording", callback=self._open_upload)
+
         self.menu = [
             self._mi_start,
+            self._mi_upload,
             None,  # separator
             rumps.MenuItem("Settings", callback=self.open_settings),
             rumps.MenuItem("Quit", callback=rumps.quit_application),
@@ -169,7 +175,25 @@ class OpenTranscribeApp(rumps.App):
 
     def _init_services(self, config: Config):
         log.info("Initializing services...")
-        self._transcriber = TranscriptionService(config.gemini_api_key)
+        from google import genai
+        from google.genai import types
+
+        client = genai.Client(
+            api_key=config.gemini_api_key,
+            http_options=types.HttpOptions(
+                timeout=600_000,  # 10 min for long audio
+                retry_options=types.HttpRetryOptions(
+                    attempts=3,
+                    initial_delay=1.0,
+                    max_delay=30.0,
+                    exp_base=2,
+                    jitter=1.0,
+                    http_status_codes=[408, 500, 502, 503, 504],
+                ),
+            ),
+        )
+        model_selector = ModelSelector(client, preferred_model=config.gemini_model)
+        self._transcriber = TranscriptionService(client, model_selector)
         self._notion = NotionService(config.notion_token, config.notion_database_id)
         log.info("Services ready.")
 
@@ -357,10 +381,48 @@ class OpenTranscribeApp(rumps.App):
     # ── Settings ──────────────────────────────────────────────────────
 
     def open_settings(self, sender):
-        """Open config.json in the default editor. Creates a template if it doesn't exist."""
-        save_config(self._config or Config())
-        log.info(f"Opening config: {CONFIG_PATH}")
-        subprocess.Popen(["open", str(CONFIG_PATH)])
+        """Open the native settings window."""
+        show_settings(
+            self._config or Config(),
+            on_save=self._apply_settings,
+            gemini_client=self._transcriber._client if self._transcriber else None,
+        )
+
+    def _apply_settings(self, config: Config):
+        """Save config to disk and reinitialize services."""
+        save_config(config)
+        self._load_and_init()
+
+    # ── Upload ───────────────────────────────────────────────────────
+
+    def _open_upload(self, sender):
+        """Open the upload window for drag-and-drop transcription."""
+        self._load_and_init()
+
+        if not self._transcriber:
+            log.warning("Tried to upload without config")
+            rumps.notification("Open Transcribe", "Not configured", "Click Settings, add keys, then Reload Config.")
+            return
+
+        show_upload(on_drop=self._handle_uploaded_file)
+
+    def _handle_uploaded_file(self, path: str):
+        """Handle a file dropped onto the upload window."""
+        import soundfile as sf
+
+        date = datetime.fromtimestamp(os.path.getmtime(path)).astimezone()
+        try:
+            info = sf.info(path)
+            duration = info.duration
+        except Exception:
+            duration = 0.0
+        self._start_anim()
+        thread = threading.Thread(
+            target=self._process_recording,
+            args=(path, date, duration),
+            daemon=True,
+        )
+        thread.start()
 
 
 def main():

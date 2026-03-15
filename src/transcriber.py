@@ -6,7 +6,7 @@ from pathlib import Path
 from google import genai
 from google.genai import types
 
-from src.config import MODEL_NAME
+from src.model_selector import ModelSelector, is_rate_limit_error
 
 log = logging.getLogger("open-transcribe")
 
@@ -16,21 +16,9 @@ class TranscriptionError(Exception):
 
 
 class TranscriptionService:
-    def __init__(self, api_key: str):
-        self._client = genai.Client(
-            api_key=api_key,
-            http_options=types.HttpOptions(
-                timeout=600_000,  # 10 min for long audio
-                retry_options=types.HttpRetryOptions(
-                    attempts=5,
-                    initial_delay=1.0,
-                    max_delay=60.0,
-                    exp_base=2,
-                    jitter=1.0,
-                    http_status_codes=[408, 429, 500, 502, 503, 504],
-                ),
-            ),
-        )
+    def __init__(self, client: genai.Client, model_selector: ModelSelector):
+        self._client = client
+        self._model_selector = model_selector
 
     def transcribe_and_summarize(
         self,
@@ -39,39 +27,46 @@ class TranscriptionService:
         summary_prompt: str,
         title_prompt: str,
     ) -> tuple[str, str, str]:
-        """Transcribe audio, summarize, and generate title. Returns (transcription, summary, title)."""
-        try:
-            transcription = self._transcribe_audio(audio_path, transcription_prompt)
-            log.info(f"Transcription complete ({len(transcription)} chars)")
+        """Transcribe audio, summarize, and generate title with automatic model fallback."""
+        self._model_selector.reset()
 
-            summary = self._summarize(transcription, summary_prompt)
-            log.info(f"Summary complete ({len(summary)} chars)")
+        while True:
+            model = self._model_selector.current_model
+            try:
+                log.info(f"Using model: {model}")
+                transcription = self._transcribe_audio(audio_path, transcription_prompt, model)
+                log.info(f"Transcription complete ({len(transcription)} chars)")
 
-            title = self._generate_title(transcription, title_prompt)
-            log.info(f"Generated title: {title}")
+                summary = self._summarize(transcription, summary_prompt, model)
+                log.info(f"Summary complete ({len(summary)} chars)")
 
-            return transcription, summary, title
-        except TranscriptionError:
-            raise
-        except Exception as e:
-            raise TranscriptionError(f"Transcription failed: {e}") from e
+                title = self._generate_title(transcription, title_prompt, model)
+                log.info(f"Generated title: {title}")
 
-    def _transcribe_audio(self, audio_path: str, prompt: str) -> str:
+                return transcription, summary, title
+            except TranscriptionError:
+                raise
+            except Exception as e:
+                if is_rate_limit_error(e) and self._model_selector.advance_on_rate_limit():
+                    continue
+                raise TranscriptionError(f"Transcription failed: {e}") from e
+
+    def _transcribe_audio(self, audio_path: str, prompt: str, model: str) -> str:
         """Call 1: Send audio + transcription prompt, get verbatim text."""
         file_size = os.path.getsize(audio_path)
         threshold = 20 * 1024 * 1024  # 20 MB
         log.info(f"Audio file size: {file_size / 1024 / 1024:.1f} MB")
 
         if file_size < threshold:
-            return self._transcribe_inline(audio_path, prompt)
+            return self._transcribe_inline(audio_path, prompt, model)
         else:
-            return self._transcribe_upload(audio_path, prompt)
+            return self._transcribe_upload(audio_path, prompt, model)
 
-    def _transcribe_inline(self, audio_path: str, prompt: str) -> str:
+    def _transcribe_inline(self, audio_path: str, prompt: str, model: str) -> str:
         log.info("Using inline upload (< 20 MB)")
         audio_bytes = Path(audio_path).read_bytes()
         response = self._client.models.generate_content(
-            model=MODEL_NAME,
+            model=model,
             contents=[
                 types.Part.from_bytes(data=audio_bytes, mime_type="audio/wav"),
                 prompt,
@@ -79,7 +74,7 @@ class TranscriptionService:
         )
         return response.text
 
-    def _transcribe_upload(self, audio_path: str, prompt: str) -> str:
+    def _transcribe_upload(self, audio_path: str, prompt: str, model: str) -> str:
         log.info("Using Files API upload (>= 20 MB)...")
         uploaded = self._client.files.upload(file=audio_path)
         log.info(f"Upload complete: {uploaded.name}. Waiting for processing...")
@@ -99,7 +94,7 @@ class TranscriptionService:
 
             log.info("File ready. Generating transcription...")
             response = self._client.models.generate_content(
-                model=MODEL_NAME,
+                model=model,
                 contents=[uploaded, prompt],
             )
             return response.text
@@ -110,20 +105,20 @@ class TranscriptionService:
             except Exception:
                 pass
 
-    def _summarize(self, transcription_text: str, summary_prompt: str) -> str:
+    def _summarize(self, transcription_text: str, summary_prompt: str, model: str) -> str:
         """Call 2: Send transcription text + summary prompt, get summary."""
         log.info("Generating summary from transcription...")
         response = self._client.models.generate_content(
-            model=MODEL_NAME,
+            model=model,
             contents=[summary_prompt + transcription_text],
         )
         return response.text
 
-    def _generate_title(self, transcription_text: str, title_prompt: str) -> str:
+    def _generate_title(self, transcription_text: str, title_prompt: str, model: str) -> str:
         """Call 3: Generate a short title from the transcription."""
         log.info("Generating title from transcription...")
         response = self._client.models.generate_content(
-            model=MODEL_NAME,
+            model=model,
             contents=[title_prompt + transcription_text[:4000]],
         )
         return response.text.strip()

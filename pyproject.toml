@@ -16,4 +16,10 @@ dependencies = [
 dev = [
     "py2app>=0.28",
     "setuptools>=75.0",
+    "pytest>=8.0",
+    "pytest-cov>=6.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
