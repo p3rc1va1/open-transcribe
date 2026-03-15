@@ -111,6 +111,7 @@ OPTIONS = {
         "NSMicrophoneUsageDescription": "Open Transcribe needs microphone access to record meetings.",
     },
     "packages": [
+        "src",
         "rumps",
         "google",
         "notion_client",

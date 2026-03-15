@@ -9,17 +9,17 @@ RECORDINGS_DIR = Path.home() / "Documents" / "Open Transcribe"
 
 TRANSCRIPTION_PROMPT = (
     "Process this audio recording of a meeting in two parts:\n\n"
-    "## Transcription\n"
-    "Transcribe the full audio verbatim. "
-    "Include speaker labels where possible (Speaker 1, Speaker 2, etc.). "
-    "Use proper punctuation and paragraphs.\n\n"
     "## AI Summary\n"
-    "After the transcription, provide a comprehensive summary including:\n"
-    "- **Overview**: 2-3 sentence summary of what was discussed\n"
+    "Provide a comprehensive summary including:\n"
+    "- **Overview**: Overall summary of what was discussed\n"
     "- **Key Topics**: Main subjects covered\n"
     "- **Decisions Made**: Any decisions that were agreed upon\n"
     "- **Action Items**: Tasks assigned, with owners if mentioned\n"
     "- **Open Questions**: Unresolved items or follow-ups needed\n"
+    "## Transcription\n"
+    "Transcribe the full audio verbatim. "
+    "Include speaker labels where possible (Speaker 1, Speaker 2, etc.). "
+    "Use proper punctuation and paragraphs.\n\n"
 )
 
 

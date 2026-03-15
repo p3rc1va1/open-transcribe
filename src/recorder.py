@@ -1,7 +1,7 @@
 import sounddevice as sd
 import soundfile as sf
 
-from config import RECORDINGS_DIR
+from src.config import RECORDINGS_DIR
 
 
 def find_blackhole_device() -> dict | None:

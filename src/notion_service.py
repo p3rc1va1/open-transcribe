@@ -3,7 +3,7 @@ from datetime import datetime
 
 from notion_client import Client
 
-from config import RECORDINGS_DIR
+from src.config import RECORDINGS_DIR
 
 MAX_RICH_TEXT_LENGTH = 2000
 MAX_BLOCKS_PER_REQUEST = 100
