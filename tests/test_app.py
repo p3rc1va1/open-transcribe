@@ -4,18 +4,16 @@ rumps and AppKit/Foundation must be mocked in sys.modules before
 importing src.app, because the module-level code uses them.
 """
 
-import atexit
 import os
 import signal
 import sys
-from datetime import datetime, timezone
-from pathlib import Path
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ── Mock rumps at sys.modules level ──────────────────────────────────
+
 
 def _build_mock_rumps():
     """Build a mock rumps module that satisfies import-time usage."""
@@ -65,6 +63,7 @@ def app_module(mock_rumps_module):
 
 # ── Shared helpers ────────────────────────────────────────────────────
 
+
 def _make_fake_import(foundation_mock=None):
     """Build a fake __import__ that intercepts Foundation/AppKit imports.
 
@@ -72,6 +71,7 @@ def _make_fake_import(foundation_mock=None):
         foundation_mock: If None, importing Foundation raises ImportError.
                         Otherwise, a mock module whose NSProcessInfo is used.
     """
+
     def fake_import(name, *args, **kwargs):
         if name == "Foundation":
             if foundation_mock is None:
@@ -80,10 +80,12 @@ def _make_fake_import(foundation_mock=None):
         if name == "AppKit":
             return MagicMock()
         return __import__(name, *args, **kwargs)
+
     return fake_import
 
 
 # ── Module-level functions ────────────────────────────────────────────
+
 
 class TestEnsureInfoPlist:
     def test_calls_plistbuddy(self, app_module):
@@ -211,6 +213,7 @@ class TestGenerateRotatedFrames:
 
 # ── OpenTranscribeApp class ───────────────────────────────────────────
 
+
 @pytest.fixture
 def app(app_module):
     """Create an OpenTranscribeApp instance with mocked dependencies."""
@@ -254,7 +257,7 @@ class TestLoadAndInit:
             patch.object(app_module, "AudioRecorder"),
             patch.object(app_module, "rumps"),
             patch.object(app_module, "ModelSelector"),
-            patch("google.genai.Client") as mock_client_cls,
+            patch("google.genai.Client") as _mock_client_cls,
         ):
             instance = app_module.OpenTranscribeApp()
         assert instance._transcriber is not None
@@ -283,9 +286,15 @@ class TestLoadAndInit:
 
 # ── Menu transitions ──────────────────────────────────────────────────
 
+
 class TestMenuTransitions:
     def test_clear_dynamic_menu(self, app):
-        menu_dict = {"Start Recording": True, "Pause": True, "Continue": True, "Stop Recording": True}
+        menu_dict = {
+            "Start Recording": True,
+            "Pause": True,
+            "Continue": True,
+            "Stop Recording": True,
+        }
         app.menu = MagicMock()
         app.menu.__contains__ = lambda self, key: key in menu_dict
         app.menu.__delitem__ = lambda self, key: menu_dict.pop(key, None)
@@ -311,6 +320,7 @@ class TestMenuTransitions:
 
 
 # ── Recording flow ────────────────────────────────────────────────────
+
 
 class TestStartRecording:
     def test_success(self, app, app_module):
@@ -372,14 +382,14 @@ class TestPauseRecording:
 class TestStopRecording:
     def test_with_audio(self, app, app_module):
         app._recorder.stop.return_value = "/tmp/meeting.wav"
-        app._recording_start = datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+        app._recording_start = datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC)
         with (
             patch.object(app, "_show_idle_menu"),
             patch.object(app, "_start_anim"),
             patch("src.app.threading.Thread") as mock_thread_cls,
             patch("src.app.datetime") as mock_dt,
         ):
-            mock_dt.now.return_value = datetime(2024, 1, 1, 10, 1, 0, tzinfo=timezone.utc)
+            mock_dt.now.return_value = datetime(2024, 1, 1, 10, 1, 0, tzinfo=UTC)
             mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
             app._stop_recording(None)
         mock_thread_cls.assert_called_once()
@@ -397,6 +407,7 @@ class TestStopRecording:
 
 
 # ── Animation ─────────────────────────────────────────────────────────
+
 
 class TestEnsureAnimFrames:
     def test_lazy_init(self, app, app_module):
@@ -421,7 +432,11 @@ class TestEnsureAnimFrames:
 class TestStartAnim:
     def test_with_frames(self, app, app_module):
         app._anim_frames = None
-        with patch.object(app_module, "_generate_rotated_frames", return_value=["/icon.png", "/f1.png"]):
+        with patch.object(
+            app_module,
+            "_generate_rotated_frames",
+            return_value=["/icon.png", "/f1.png"],
+        ):
             app._ensure_anim_frames()
         app._anim_timer = MagicMock()
         app._start_anim()
@@ -461,6 +476,7 @@ class TestAnimateIcon:
 
 
 # ── Background processing ────────────────────────────────────────────
+
 
 class TestProcessRecording:
     def test_activity_acquired_and_released(self, app, app_module):
@@ -503,7 +519,11 @@ class TestProcessRecording:
 class TestProcessRecordingInner:
     def test_success(self, app, app_module):
         app._transcriber = MagicMock()
-        app._transcriber.transcribe_and_summarize.return_value = ("trans", "sum", "title")
+        app._transcriber.transcribe_and_summarize.return_value = (
+            "trans",
+            "sum",
+            "title",
+        )
         app._notion = MagicMock()
         app._notion.save_transcription.return_value = "https://notion.so/page"
         with (
@@ -516,6 +536,7 @@ class TestProcessRecordingInner:
     def test_retry_on_failure(self, app, app_module):
         app._transcriber = MagicMock()
         from src.transcriber import TranscriptionError
+
         app._transcriber.transcribe_and_summarize.side_effect = [
             TranscriptionError("fail"),
             ("trans", "sum", "title"),
@@ -532,6 +553,7 @@ class TestProcessRecordingInner:
     def test_all_retries_exhausted(self, app, app_module):
         app._transcriber = MagicMock()
         from src.transcriber import TranscriptionError
+
         app._transcriber.transcribe_and_summarize.side_effect = TranscriptionError("fail")
         with (
             patch.object(app, "_stop_anim"),
@@ -542,7 +564,11 @@ class TestProcessRecordingInner:
 
     def test_notion_failure_local_fallback(self, app, app_module):
         app._transcriber = MagicMock()
-        app._transcriber.transcribe_and_summarize.return_value = ("trans", "sum", "title")
+        app._transcriber.transcribe_and_summarize.return_value = (
+            "trans",
+            "sum",
+            "title",
+        )
         app._notion = MagicMock()
         app._notion.save_transcription.side_effect = RuntimeError("notion down")
         with (
@@ -555,6 +581,7 @@ class TestProcessRecordingInner:
 
 
 # ── Settings ──────────────────────────────────────────────────────────
+
 
 class TestOpenSettings:
     def test_calls_show_settings(self, app, app_module):
@@ -602,6 +629,7 @@ class TestOpenSettings:
 
 # ── main() ────────────────────────────────────────────────────────────
 
+
 @pytest.fixture
 def main_mocks(app_module):
     """Shared patch stanza for main() tests."""
@@ -645,6 +673,7 @@ class TestMain:
 
 # ── Upload recording ──────────────────────────────────────────────────
 
+
 class TestUploadRecording:
     def test_open_upload_calls_show_upload(self, app, app_module):
         app._transcriber = MagicMock()
@@ -682,7 +711,10 @@ class TestUploadRecording:
             patch.object(app, "_start_anim") as mock_anim,
             patch("src.app.threading.Thread") as mock_thread_cls,
             patch("src.app.os.path.getmtime", return_value=1700000000.0),
-            patch.dict("sys.modules", {"soundfile": MagicMock(**{"info.return_value": mock_info})}),
+            patch.dict(
+                "sys.modules",
+                {"soundfile": MagicMock(**{"info.return_value": mock_info})},
+            ),
         ):
             app._handle_uploaded_file("/tmp/audio.wav")
         mock_anim.assert_called_once()

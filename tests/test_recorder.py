@@ -1,11 +1,11 @@
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
+
 import numpy as np
-import pytest
 
 from src.recorder import AudioRecorder, find_blackhole_device
 
-
 # ── find_blackhole_device ─────────────────────────────────────────────
+
 
 class TestFindBlackholeDevice:
     def test_found(self):
@@ -43,6 +43,7 @@ class TestFindBlackholeDevice:
 
 # ── AudioRecorder.__init__ ────────────────────────────────────────────
 
+
 class TestAudioRecorderInit:
     def test_defaults(self):
         rec = AudioRecorder()
@@ -56,14 +57,20 @@ class TestAudioRecorderInit:
 
 # ── AudioRecorder.start ──────────────────────────────────────────────
 
+
 class TestAudioRecorderStart:
     def test_with_blackhole(self, tmp_path):
-        bh = {"name": "BlackHole 2ch", "max_input_channels": 2, "index": 3, "default_samplerate": 48000.0}
+        bh = {
+            "name": "BlackHole 2ch",
+            "max_input_channels": 2,
+            "index": 3,
+            "default_samplerate": 48000.0,
+        }
         mock_stream = MagicMock()
         with (
             patch("src.recorder.RECORDINGS_DIR", tmp_path),
             patch("src.recorder.find_blackhole_device", return_value=bh),
-            patch("src.recorder.sf.SoundFile") as mock_sf,
+            patch("src.recorder.sf.SoundFile"),
             patch("src.recorder.sd.InputStream", return_value=mock_stream),
         ):
             rec = AudioRecorder()
@@ -80,16 +87,21 @@ class TestAudioRecorderStart:
             patch("src.recorder.RECORDINGS_DIR", tmp_path),
             patch("src.recorder.find_blackhole_device", return_value=None),
             patch("src.recorder.sd.query_devices", return_value=default_dev),
-            patch("src.recorder.sf.SoundFile") as mock_sf,
+            patch("src.recorder.sf.SoundFile"),
             patch("src.recorder.sd.InputStream", return_value=mock_stream),
         ):
             rec = AudioRecorder()
-            path = rec.start("test.wav")
+            rec.start("test.wav")
         assert rec.device_name == "Built-in Mic"
 
     def test_creates_recordings_dir(self, tmp_path):
         rec_dir = tmp_path / "sub" / "recordings"
-        bh = {"name": "BlackHole", "max_input_channels": 2, "index": 0, "default_samplerate": 48000.0}
+        bh = {
+            "name": "BlackHole",
+            "max_input_channels": 2,
+            "index": 0,
+            "default_samplerate": 48000.0,
+        }
         with (
             patch("src.recorder.RECORDINGS_DIR", rec_dir),
             patch("src.recorder.find_blackhole_device", return_value=bh),
@@ -102,6 +114,7 @@ class TestAudioRecorderStart:
 
 
 # ── _audio_callback ──────────────────────────────────────────────────
+
 
 class TestAudioCallback:
     def test_writes_when_not_paused(self):
@@ -129,6 +142,7 @@ class TestAudioCallback:
 
 # ── pause / resume ────────────────────────────────────────────────────
 
+
 class TestPauseResume:
     def test_pause(self):
         rec = AudioRecorder()
@@ -143,6 +157,7 @@ class TestPauseResume:
 
 
 # ── stop ──────────────────────────────────────────────────────────────
+
 
 class TestStop:
     def test_closes_stream_and_file(self):

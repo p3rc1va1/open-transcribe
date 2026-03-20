@@ -69,8 +69,11 @@ def _toggle_heading_1(title: str, children: list[dict]) -> dict:
 
 
 def save_transcription_locally(
-    title: str, date: datetime, duration_seconds: float,
-    transcription: str, summary: str,
+    title: str,
+    date: datetime,
+    duration_seconds: float,
+    transcription: str,
+    summary: str,
 ) -> str:
     """Fallback: save transcription as a .txt file. Returns the file path."""
     RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
@@ -110,46 +113,54 @@ def _text_to_blocks(text: str) -> list[dict]:
             level = len(heading_match.group(1))
             heading_text = heading_match.group(2).strip()
             block_type = f"heading_{min(level, 3)}"
-            blocks.append({
-                "object": "block",
-                "type": block_type,
-                block_type: {
-                    "rich_text": _parse_inline_markdown(heading_text),
-                },
-            })
+            blocks.append(
+                {
+                    "object": "block",
+                    "type": block_type,
+                    block_type: {
+                        "rich_text": _parse_inline_markdown(heading_text),
+                    },
+                }
+            )
             continue
 
         # Bulleted list items: "- item" or "* item"
         bullet_match = re.match(r"^[-*]\s+(.+)$", stripped)
         if bullet_match:
             item_text = bullet_match.group(1)
-            blocks.append({
-                "object": "block",
-                "type": "bulleted_list_item",
-                "bulleted_list_item": {
-                    "rich_text": _parse_inline_markdown(item_text),
-                },
-            })
+            blocks.append(
+                {
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                    "bulleted_list_item": {
+                        "rich_text": _parse_inline_markdown(item_text),
+                    },
+                }
+            )
             continue
 
         # Divider: "---" or "***"
         if re.match(r"^[-*]{3,}$", stripped):
-            blocks.append({
-                "object": "block",
-                "type": "divider",
-                "divider": {},
-            })
+            blocks.append(
+                {
+                    "object": "block",
+                    "type": "divider",
+                    "divider": {},
+                }
+            )
             continue
 
         # Regular paragraph
         rich_text = _parse_inline_markdown(stripped)
-        blocks.append({
-            "object": "block",
-            "type": "paragraph",
-            "paragraph": {
-                "rich_text": rich_text,
-            },
-        })
+        blocks.append(
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": rich_text,
+                },
+            }
+        )
 
     return blocks
 
@@ -164,7 +175,7 @@ def _parse_inline_markdown(text: str) -> list[dict]:
     for match in pattern.finditer(text):
         # Add plain text before this match
         if match.start() > last_end:
-            plain = text[last_end:match.start()]
+            plain = text[last_end : match.start()]
             if plain:
                 parts.extend(_chunk_rich_text(plain, {}))
 

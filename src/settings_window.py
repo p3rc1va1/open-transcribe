@@ -5,7 +5,7 @@ import webbrowser
 
 import AppKit
 import objc
-from Foundation import NSObject, NSMakeRect
+from Foundation import NSMakeRect, NSObject
 
 from src.config import Config
 from src.model_selector import MODEL_TIER_ORDER, _discover_models, _sort_by_tier
@@ -37,9 +37,7 @@ HELP_URLS = {
 
 def _make_help_button(y, url, delegate):
     """Create a small help button (?) that opens a URL when clicked."""
-    btn = AppKit.NSButton.alloc().initWithFrame_(
-        NSMakeRect(FIELD_X + FIELD_W + 4, y + 1, HELP_BTN_SIZE, HELP_BTN_SIZE)
-    )
+    btn = AppKit.NSButton.alloc().initWithFrame_(NSMakeRect(FIELD_X + FIELD_W + 4, y + 1, HELP_BTN_SIZE, HELP_BTN_SIZE))
     btn.setBezelStyle_(AppKit.NSBezelStyleHelpButton)
     btn.setTitle_("")
     btn.setTarget_(delegate)
@@ -50,9 +48,7 @@ def _make_help_button(y, url, delegate):
 
 def _make_label(y, text):
     """Create a right-aligned, non-editable label at the given y position."""
-    label = AppKit.NSTextField.alloc().initWithFrame_(
-        NSMakeRect(LABEL_X, y, LABEL_W, 24)
-    )
+    label = AppKit.NSTextField.alloc().initWithFrame_(NSMakeRect(LABEL_X, y, LABEL_W, 24))
     label.setStringValue_(text)
     label.setBezeled_(False)
     label.setDrawsBackground_(False)
@@ -77,8 +73,7 @@ def _build_window(config, on_save, gemini_client):
     """Construct the settings NSWindow with labeled rows and buttons."""
     window = AppKit.NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
         NSMakeRect(200, 200, WIN_WIDTH, WIN_HEIGHT),
-        AppKit.NSWindowStyleMaskTitled
-        | AppKit.NSWindowStyleMaskClosable,
+        AppKit.NSWindowStyleMaskTitled | AppKit.NSWindowStyleMaskClosable,
         AppKit.NSBackingStoreBuffered,
         False,
     )
@@ -137,13 +132,16 @@ def _build_window(config, on_save, gemini_client):
 
     # Row 3: Notion Database ID
     content.addSubview_(_make_label(rows[3], "Notion Database ID:"))
-    db_id_field = _make_field(rows[3], secure=False, placeholder="Enter database ID", value=config.notion_database_id)
+    db_id_field = _make_field(
+        rows[3],
+        secure=False,
+        placeholder="Enter database ID",
+        value=config.notion_database_id,
+    )
     content.addSubview_(db_id_field)
 
     # Buttons
-    save_btn = AppKit.NSButton.alloc().initWithFrame_(
-        NSMakeRect(WIN_WIDTH - BUTTON_W - 20, 20, BUTTON_W, BUTTON_H)
-    )
+    save_btn = AppKit.NSButton.alloc().initWithFrame_(NSMakeRect(WIN_WIDTH - BUTTON_W - 20, 20, BUTTON_W, BUTTON_H))
     save_btn.setTitle_("Save")
     save_btn.setBezelStyle_(AppKit.NSBezelStyleRounded)
     content.addSubview_(save_btn)

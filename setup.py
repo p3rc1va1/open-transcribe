@@ -1,8 +1,7 @@
 import os
 
-from setuptools import setup
-
 import py2app.build_app
+from setuptools import setup
 
 # ---------------------------------------------------------------------------
 # Compatibility patches for py2app 0.28 with modern setuptools / uv Python
@@ -70,7 +69,6 @@ _orig_run = py2app.build_app.py2app.run
 def _patched_run(self):
     _orig_run(self)
     # Strip bogus google/__init__.pyc from the site-packages zip
-    import zipfile
     from glob import glob
 
     for zpath in glob(os.path.join(self.dist_dir, "**", "*.zip"), recursive=True):
@@ -99,7 +97,16 @@ py2app.build_app.py2app.run = _patched_run
 # ---------------------------------------------------------------------------
 
 APP = ["main.py"]
-DATA_FILES = [("media", ["media/menu_icon.png", "media/menu_icon_red.png", "media/menu_icon_yellow.png"])]
+DATA_FILES = [
+    (
+        "media",
+        [
+            "media/menu_icon.png",
+            "media/menu_icon_red.png",
+            "media/menu_icon_yellow.png",
+        ],
+    )
+]
 OPTIONS = {
     "argv_emulation": False,
     "iconfile": "media/icon.icns",

@@ -1,6 +1,4 @@
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from src.model_selector import (
     MODEL_TIER_ORDER,
@@ -9,8 +7,8 @@ from src.model_selector import (
     is_rate_limit_error,
 )
 
-
 # ── MODEL_TIER_ORDER ─────────────────────────────────────────────────
+
 
 class TestModelTierOrder:
     def test_has_entries(self):
@@ -26,6 +24,7 @@ class TestModelTierOrder:
 
 
 # ── _sort_by_tier ────────────────────────────────────────────────────
+
 
 class TestSortByTier:
     def test_sorts_by_tier_order(self):
@@ -53,13 +52,16 @@ class TestSortByTier:
 
 # ── is_rate_limit_error ──────────────────────────────────────────────
 
+
 def _make_client_error(code: int):
     from google.genai import errors as genai_errors
+
     return genai_errors.ClientError(code, {"error": {"message": f"test {code}"}})
 
 
 def _make_server_error(code: int):
     from google.genai import errors as genai_errors
+
     return genai_errors.ServerError(code, {"error": {"message": f"test {code}"}})
 
 
@@ -78,6 +80,7 @@ class TestIsRateLimitError:
 
 
 # ── ModelSelector ────────────────────────────────────────────────────
+
 
 def _make_mock_model(name: str, actions: list[str] | None = None):
     """Create a mock Model object as returned by client.models.list()."""

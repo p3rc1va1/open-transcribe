@@ -1,24 +1,21 @@
 import json
 import os
-from unittest.mock import patch
-
-import pytest
 
 from src.config import (
     APP_DIR,
     CONFIG_PATH,
-    Config,
     RECORDINGS_DIR,
     REQUIRED_KEYS,
     SUMMARY_PROMPT,
     TITLE_PROMPT,
     TRANSCRIPTION_PROMPT,
+    Config,
     load_config,
     save_config,
 )
 
-
 # ── Config dataclass ──────────────────────────────────────────────────
+
 
 class TestConfig:
     def test_defaults(self):
@@ -29,7 +26,12 @@ class TestConfig:
         assert c.notion_database_id == ""
 
     def test_construction_with_values(self):
-        c = Config(gemini_api_key="k", gemini_model="m", notion_token="t", notion_database_id="d")
+        c = Config(
+            gemini_api_key="k",
+            gemini_model="m",
+            notion_token="t",
+            notion_database_id="d",
+        )
         assert c.gemini_api_key == "k"
         assert c.gemini_model == "m"
         assert c.notion_token == "t"
@@ -38,6 +40,7 @@ class TestConfig:
 
 # ── REQUIRED_KEYS ─────────────────────────────────────────────────────
 
+
 class TestRequiredKeys:
     def test_required_keys_explicit(self):
         assert REQUIRED_KEYS == ["gemini_api_key", "notion_token", "notion_database_id"]
@@ -45,6 +48,7 @@ class TestRequiredKeys:
 
 
 # ── Module constants ──────────────────────────────────────────────────
+
 
 class TestModuleConstants:
     def test_paths_are_paths(self):
@@ -59,6 +63,7 @@ class TestModuleConstants:
 
 
 # ── load_config ───────────────────────────────────────────────────────
+
 
 class TestLoadConfig:
     def test_missing_file(self, tmp_config_dir):
@@ -95,9 +100,7 @@ class TestLoadConfig:
     def test_empty_strings_count_as_missing(self, tmp_config_dir):
         d = tmp_config_dir
         d["app_dir"].mkdir(parents=True)
-        d["config_path"].write_text(
-            json.dumps({"gemini_api_key": "", "notion_token": "", "notion_database_id": ""})
-        )
+        d["config_path"].write_text(json.dumps({"gemini_api_key": "", "notion_token": "", "notion_database_id": ""}))
         config, missing = load_config()
         assert config is not None
         assert set(missing) == set(REQUIRED_KEYS)
@@ -126,6 +129,7 @@ class TestLoadConfig:
 
 
 # ── save_config ───────────────────────────────────────────────────────
+
 
 class TestSaveConfig:
     def test_creates_dir_and_file(self, tmp_config_dir, sample_config):

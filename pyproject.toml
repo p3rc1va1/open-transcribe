@@ -20,6 +20,19 @@ dev = [
     "pytest-cov>=6.0",
 ]
 
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/settings_window.py" = ["N802"]
+"src/upload_window.py" = ["N802"]
+"tests/test_upload_window.py" = ["N802"]
+"setup.py" = ["E402"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --tb=short"

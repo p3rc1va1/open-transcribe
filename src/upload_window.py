@@ -4,7 +4,7 @@ import logging
 
 import AppKit
 import objc
-from Foundation import NSObject, NSMakeRect
+from Foundation import NSMakeRect, NSObject
 
 log = logging.getLogger("open-transcribe")
 
@@ -54,9 +54,7 @@ class DropZoneView(AppKit.NSView):
             AppKit.NSFontAttributeName: AppKit.NSFont.systemFontOfSize_(14),
             AppKit.NSForegroundColorAttributeName: AppKit.NSColor.secondaryLabelColor(),
         }
-        label = AppKit.NSAttributedString.alloc().initWithString_attributes_(
-            "\u25bc Drop audio file here", attrs
-        )
+        label = AppKit.NSAttributedString.alloc().initWithString_attributes_("\u25bc Drop audio file here", attrs)
         size = label.size()
         x = (bounds.size.width - size.width) / 2
         y = (bounds.size.height - size.height) / 2

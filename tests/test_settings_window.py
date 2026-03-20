@@ -5,14 +5,14 @@ importing src.settings_window, because the module-level code uses them.
 """
 
 import sys
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
 from src.config import Config
 
-
 # ── Mock AppKit / Foundation / objc at sys.modules level ──────────────
+
 
 def _build_mock_appkit():
     mock = MagicMock()
@@ -78,6 +78,7 @@ def sw_module(mock_pyobjc_modules):
         if mod_name == "src.settings_window" or mod_name.startswith("src.settings_window."):
             del sys.modules[mod_name]
     import src.settings_window
+
     # Reset singletons between tests
     src.settings_window._current_window = None
     src.settings_window._current_delegate = None
@@ -85,6 +86,7 @@ def sw_module(mock_pyobjc_modules):
 
 
 # ── show_settings: window lifecycle ───────────────────────────────────
+
 
 class TestShowSettings:
     def test_creates_window(self, sw_module, mock_pyobjc_modules):
@@ -136,6 +138,7 @@ class TestShowSettings:
 
 # ── _build_window: field population ──────────────────────────────────
 
+
 class TestBuildWindow:
     def test_fields_populated_from_config(self, sw_module, mock_pyobjc_modules):
         config = Config(
@@ -156,6 +159,7 @@ class TestBuildWindow:
                 field.initWithFrame_.return_value = field
                 fields_created.append(field)
                 return field
+
             return alloc
 
         mock_appkit.NSSecureTextField.alloc = track_field("NSSecureTextField")
@@ -191,9 +195,6 @@ class TestBuildWindow:
 
         secure_count = 0
         plain_count = 0
-
-        orig_secure_alloc = mock_appkit.NSSecureTextField.alloc
-        orig_plain_alloc = mock_appkit.NSTextField.alloc
 
         def count_secure():
             nonlocal secure_count
@@ -282,8 +283,16 @@ class TestBuildWindow:
 
         client = MagicMock()
         with (
-            patch.object(sw_module, "_discover_models", return_value=["gemini-2.5-flash", "gemini-2.0-flash"]),
-            patch.object(sw_module, "_sort_by_tier", return_value=["gemini-2.5-flash", "gemini-2.0-flash"]),
+            patch.object(
+                sw_module,
+                "_discover_models",
+                return_value=["gemini-2.5-flash", "gemini-2.0-flash"],
+            ),
+            patch.object(
+                sw_module,
+                "_sort_by_tier",
+                return_value=["gemini-2.5-flash", "gemini-2.0-flash"],
+            ),
         ):
             sw_module._build_window(Config(), MagicMock(), gemini_client=client)
 
@@ -374,6 +383,7 @@ class TestBuildWindow:
 
 
 # ── SettingsWindowDelegate: save/cancel ──────────────────────────────
+
 
 class TestDelegateSave:
     def test_save_auto_model(self, sw_module):
@@ -494,9 +504,11 @@ class TestHelpButtons:
         # 2 help buttons + Save + Cancel = 4 NSButton allocs
         assert len(buttons_created) == 4
         # Help buttons have setBezelStyle_ called with NSBezelStyleHelpButton
-        help_btns = [b for b in buttons_created if any(
-            c == call(mock_appkit.NSBezelStyleHelpButton) for c in b.setBezelStyle_.call_args_list
-        )]
+        help_btns = [
+            b
+            for b in buttons_created
+            if any(c == call(mock_appkit.NSBezelStyleHelpButton) for c in b.setBezelStyle_.call_args_list)
+        ]
         assert len(help_btns) == 2
 
         # Verify tooltips contain the expected URLs
@@ -514,6 +526,4 @@ class TestDelegateWindowClose:
         delegate.windowWillClose_(None)
         assert sw_module._current_window is None
         assert sw_module._current_delegate is None
-        mock_appkit.NSApp.setActivationPolicy_.assert_called_with(
-            mock_appkit.NSApplicationActivationPolicyAccessory
-        )
+        mock_appkit.NSApp.setActivationPolicy_.assert_called_with(mock_appkit.NSApplicationActivationPolicyAccessory)

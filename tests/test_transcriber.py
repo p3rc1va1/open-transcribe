@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
@@ -18,6 +18,7 @@ def transcription_svc():
 
 # ── __init__ ──────────────────────────────────────────────────────────
 
+
 class TestInit:
     def test_stores_client_and_selector(self):
         mock_client = MagicMock()
@@ -28,6 +29,7 @@ class TestInit:
 
 
 # ── _transcribe_audio routing ─────────────────────────────────────────
+
 
 class TestTranscribeAudioRouting:
     def test_inline_when_small(self, transcription_svc):
@@ -49,12 +51,13 @@ class TestTranscribeAudioRouting:
             patch.object(svc, "_transcribe_inline") as m_inline,
             patch.object(svc, "_transcribe_upload", return_value="text") as m_upload,
         ):
-            result = svc._transcribe_audio("/audio.wav", "prompt", "gemini-2.5-flash")
+            svc._transcribe_audio("/audio.wav", "prompt", "gemini-2.5-flash")
         m_upload.assert_called_once()
         m_inline.assert_not_called()
 
 
 # ── _transcribe_inline ────────────────────────────────────────────────
+
 
 class TestTranscribeInline:
     def test_reads_bytes_and_calls_generate(self, transcription_svc):
@@ -73,6 +76,7 @@ class TestTranscribeInline:
 
 
 # ── _transcribe_upload ────────────────────────────────────────────────
+
 
 class TestTranscribeUpload:
     def test_upload_poll_success(self, transcription_svc):
@@ -163,6 +167,7 @@ class TestTranscribeUpload:
 
 # ── _summarize ────────────────────────────────────────────────────────
 
+
 class TestSummarize:
     def test_sends_prompt_and_text(self, transcription_svc):
         svc, mock_client, _ = transcription_svc
@@ -175,6 +180,7 @@ class TestSummarize:
 
 
 # ── _generate_title ───────────────────────────────────────────────────
+
 
 class TestGenerateTitle:
     def test_truncates_and_strips(self, transcription_svc):
@@ -193,6 +199,7 @@ class TestGenerateTitle:
 
 
 # ── transcribe_and_summarize ─────────────────────────────────────────
+
 
 class TestTranscribeAndSummarize:
     def test_full_pipeline(self, transcription_svc):
@@ -227,6 +234,7 @@ class TestTranscribeAndSummarize:
         svc, _, selector = transcription_svc
 
         from google.genai import errors as genai_errors
+
         rate_err = genai_errors.ClientError(429, {"error": {"message": "RESOURCE_EXHAUSTED"}})
 
         # First call raises 429, advance succeeds, second call works
@@ -240,9 +248,7 @@ class TestTranscribeAndSummarize:
                 raise rate_err
             return "transcript"
 
-        type(selector).current_model = PropertyMock(
-            side_effect=["gemini-3-flash", "gemini-2.5-flash"]
-        )
+        type(selector).current_model = PropertyMock(side_effect=["gemini-3-flash", "gemini-2.5-flash"])
 
         with (
             patch.object(svc, "_transcribe_audio", side_effect=fake_transcribe),
@@ -259,6 +265,7 @@ class TestTranscribeAndSummarize:
         svc, _, selector = transcription_svc
 
         from google.genai import errors as genai_errors
+
         rate_err = genai_errors.ClientError(429, {"error": {"message": "RESOURCE_EXHAUSTED"}})
 
         selector.advance_on_rate_limit.return_value = False

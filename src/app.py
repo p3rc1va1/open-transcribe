@@ -6,17 +6,25 @@ import subprocess
 import sys
 import tempfile
 import threading
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 import rumps
 
-from src.config import Config, TRANSCRIPTION_PROMPT, SUMMARY_PROMPT, TITLE_PROMPT, APP_DIR, CONFIG_PATH, load_config, save_config
+from src.config import (
+    APP_DIR,
+    SUMMARY_PROMPT,
+    TITLE_PROMPT,
+    TRANSCRIPTION_PROMPT,
+    Config,
+    load_config,
+    save_config,
+)
 from src.model_selector import ModelSelector
-from src.recorder import AudioRecorder
-from src.transcriber import TranscriptionService, TranscriptionError
 from src.notion_service import NotionService, save_transcription_locally
+from src.recorder import AudioRecorder
 from src.settings_window import show_settings
+from src.transcriber import TranscriptionError, TranscriptionService
 from src.upload_window import show_upload
 
 logging.basicConfig(
@@ -84,7 +92,7 @@ def _find_icons():
 
 def _generate_rotated_frames(icon_path: str, count: int = 8) -> list[str]:
     """Pre-generate rotated versions of the icon as temp files."""
-    from AppKit import NSImage, NSBitmapImageRep, NSCompositeSourceOver, NSPNGFileType
+    from AppKit import NSBitmapImageRep, NSCompositeSourceOver, NSImage, NSPNGFileType
     from Foundation import NSAffineTransform, NSMakeRect, NSSize
 
     src = NSImage.alloc().initByReferencingFile_(icon_path)
@@ -232,7 +240,11 @@ class OpenTranscribeApp(rumps.App):
 
         if not self._transcriber:
             log.warning("Tried to record without config")
-            rumps.notification("Open Transcribe", "Not configured", "Click Settings, add keys, then Reload Config.")
+            rumps.notification(
+                "Open Transcribe",
+                "Not configured",
+                "Click Settings, add keys, then Reload Config.",
+            )
             return
 
         self._recording_start = datetime.now().astimezone()
@@ -325,6 +337,7 @@ class OpenTranscribeApp(rumps.App):
         # Prevent macOS App Nap from suspending us during processing
         try:
             from Foundation import NSProcessInfo
+
             activity = NSProcessInfo.processInfo().beginActivityWithOptions_reason_(
                 0x00FFFFFF,  # NSActivityUserInitiatedAllowingIdleSystemSleep
                 "Processing transcription",
@@ -401,7 +414,11 @@ class OpenTranscribeApp(rumps.App):
 
         if not self._transcriber:
             log.warning("Tried to upload without config")
-            rumps.notification("Open Transcribe", "Not configured", "Click Settings, add keys, then Reload Config.")
+            rumps.notification(
+                "Open Transcribe",
+                "Not configured",
+                "Click Settings, add keys, then Reload Config.",
+            )
             return
 
         show_upload(on_drop=self._handle_uploaded_file)

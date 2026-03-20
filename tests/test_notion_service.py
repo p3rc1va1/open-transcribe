@@ -1,11 +1,8 @@
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from src.notion_service import (
     MAX_BLOCKS_PER_REQUEST,
-    MAX_RICH_TEXT_LENGTH,
     NotionService,
     _chunk_rich_text,
     _format_duration,
@@ -15,8 +12,8 @@ from src.notion_service import (
     save_transcription_locally,
 )
 
-
 # ── NotionService.__init__ ────────────────────────────────────────────
+
 
 class TestNotionServiceInit:
     @patch("src.notion_service.Client")
@@ -27,6 +24,7 @@ class TestNotionServiceInit:
 
 
 # ── save_transcription ────────────────────────────────────────────────
+
 
 class TestSaveTranscription:
     @patch("src.notion_service.Client")
@@ -65,6 +63,7 @@ class TestSaveTranscription:
 
 # ── _toggle_heading_1 ────────────────────────────────────────────────
 
+
 class TestToggleHeading1:
     def test_correct_structure(self):
         block = _toggle_heading_1("My Title", [{"child": 1}])
@@ -81,13 +80,12 @@ class TestToggleHeading1:
 
 # ── save_transcription_locally ────────────────────────────────────────
 
+
 class TestSaveTranscriptionLocally:
     def test_creates_dir_and_writes(self, tmp_path):
         rec_dir = tmp_path / "recordings"
         with patch("src.notion_service.RECORDINGS_DIR", rec_dir):
-            path = save_transcription_locally(
-                "Test Title", datetime(2024, 1, 15, 10, 0), 90, "trans", "sum"
-            )
+            path = save_transcription_locally("Test Title", datetime(2024, 1, 15, 10, 0), 90, "trans", "sum")
         assert rec_dir.exists()
         content = (rec_dir / "Test Title.txt").read_text()
         assert "Title: Test Title" in content
@@ -98,6 +96,7 @@ class TestSaveTranscriptionLocally:
 
 
 # ── _format_duration ──────────────────────────────────────────────────
+
 
 class TestFormatDuration:
     def test_zero(self):
@@ -117,6 +116,7 @@ class TestFormatDuration:
 
 
 # ── _text_to_blocks ───────────────────────────────────────────────────
+
 
 class TestTextToBlocks:
     def test_empty_string(self):
@@ -179,6 +179,7 @@ class TestTextToBlocks:
 
 # ── _parse_inline_markdown ────────────────────────────────────────────
 
+
 class TestParseInlineMarkdown:
     def test_plain_text(self):
         parts = _parse_inline_markdown("hello world")
@@ -218,6 +219,7 @@ class TestParseInlineMarkdown:
 
 
 # ── _chunk_rich_text ──────────────────────────────────────────────────
+
 
 class TestChunkRichText:
     def test_short_text(self):

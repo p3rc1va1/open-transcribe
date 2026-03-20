@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ── Mock AppKit / Foundation / objc at sys.modules level ──────────────
+
 
 def _build_mock_appkit():
     mock = MagicMock()
@@ -105,6 +105,7 @@ def uw_module(mock_pyobjc_modules):
         if mod_name == "src.upload_window" or mod_name.startswith("src.upload_window."):
             del sys.modules[mod_name]
     import src.upload_window
+
     # Reset singletons between tests
     src.upload_window._current_window = None
     src.upload_window._current_delegate = None
@@ -112,6 +113,7 @@ def uw_module(mock_pyobjc_modules):
 
 
 # ── show_upload: window lifecycle ─────────────────────────────────────
+
 
 class TestShowUpload:
     def test_creates_window(self, uw_module, mock_pyobjc_modules):
@@ -154,6 +156,7 @@ class TestShowUpload:
 
 
 # ── DropZoneView ──────────────────────────────────────────────────────
+
 
 class TestDropZoneView:
     def test_registers_drag_types(self, uw_module, mock_pyobjc_modules):
@@ -304,6 +307,7 @@ class TestDropZoneView:
 
 # ── UploadWindowDelegate ──────────────────────────────────────────────
 
+
 class TestUploadWindowDelegate:
     def test_clears_singleton_and_reverts_policy(self, uw_module, mock_pyobjc_modules):
         uw_module._current_window = MagicMock()
@@ -313,12 +317,11 @@ class TestUploadWindowDelegate:
         delegate.windowWillClose_(None)
         assert uw_module._current_window is None
         assert uw_module._current_delegate is None
-        mock_appkit.NSApp.setActivationPolicy_.assert_called_with(
-            mock_appkit.NSApplicationActivationPolicyAccessory
-        )
+        mock_appkit.NSApp.setActivationPolicy_.assert_called_with(mock_appkit.NSApplicationActivationPolicyAccessory)
 
 
 # ── _build_window ─────────────────────────────────────────────────────
+
 
 class TestBuildWindow:
     def test_creates_window_with_drop_zone(self, uw_module, mock_pyobjc_modules):

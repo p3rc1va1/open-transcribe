@@ -22,6 +22,7 @@ def _sort_by_tier(model_names: list[str]) -> list[str]:
     Models matching an earlier prefix rank higher.
     Models not matching any prefix are excluded.
     """
+
     def tier_key(name: str) -> tuple[int, str]:
         for i, prefix in enumerate(MODEL_TIER_ORDER):
             if name.startswith(prefix):
@@ -40,7 +41,7 @@ def _discover_models(client: genai.Client) -> list[str]:
         name = model.name or ""
         # API returns names like "models/gemini-2.5-flash"; strip the prefix
         if name.startswith("models/"):
-            name = name[len("models/"):]
+            name = name[len("models/") :]
         actions = model.supported_actions or []
         if "generateContent" in actions:
             models.append(name)
@@ -76,8 +77,7 @@ class ModelSelector:
             else:
                 # Respect user intent: insert at front even if not in tier list
                 log.warning(
-                    f"Preferred model '{preferred_model}' not found in available models. "
-                    f"Adding it as primary anyway."
+                    f"Preferred model '{preferred_model}' not found in available models. Adding it as primary anyway."
                 )
                 self._models.insert(0, preferred_model)
 
